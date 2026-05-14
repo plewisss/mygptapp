@@ -1,0 +1,55 @@
+{
+  "name": "china-sourcing-tracker",
+  "version": "1.0.0",
+  "description": "Desktop app for CABSI wholesale trading purchase orders and receivables.",
+  "main": "desktop/main.js",
+  "scripts": {
+    "start": "node server.js",
+    "desktop": "electron .",
+    "serve": "node server.js",
+    "serve:shared": "node server.js",
+    "migrate:db": "node scripts/migrate-json-to-db.js",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.chinasourcing.tracker",
+    "productName": "CABSI NON SPECIALIZED WHOLESALE TRADING",
+    "files": [
+      "app.js",
+      "company-logo-app.png",
+      "company-logo.ico",
+      "company-logo.icns",
+      "company-logo.png",
+      "desktop/**/*",
+      "icon.svg",
+      "index.html",
+      "manifest.webmanifest",
+      "server.js",
+      "service-worker.js",
+      "styles.css"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "company-logo.ico",
+      "signAndEditExecutable": false
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.business",
+      "icon": "company-logo.icns"
+    }
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3",
+    "png-to-ico": "^3.0.1"
+  },
+  "dependencies": {
+    "pg": "^8.20.0"
+  }
+}

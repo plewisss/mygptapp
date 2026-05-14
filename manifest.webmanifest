@@ -1,0 +1,16 @@
+{
+  "name": "CABSI NON SPECIALIZED WHOLESALE TRADING",
+  "short_name": "CABSI",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#fff8f4",
+  "theme_color": "#b9171f",
+  "icons": [
+    {
+      "src": "company-logo-app.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

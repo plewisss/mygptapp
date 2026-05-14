@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#b9171f">
+    <title>CABSI NON SPECIALIZED WHOLESALE TRADING</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="company-logo-app.png" type="image/png">
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <section class="login-screen" id="loginScreen" aria-label="Login">
+      <form class="login-card" id="loginForm">
+        <img class="login-logo" src="company-logo-app.png" alt="Company logo">
+        <h1>CABSI NON SPECIALIZED WHOLESALE TRADING</h1>
+        <p>Sign in to view purchase orders and receivables.</p>
+        <label><span>Username</span><input name="username" autocomplete="username" required></label>
+        <label><span>Password</span><input name="password" type="password" autocomplete="current-password" required></label>
+        <p class="login-error" id="loginError" role="alert" hidden></p>
+        <button class="primary-button" type="submit">Log In</button>
+      </form>
+    </section>
+
+    <div class="app-shell" id="appShell" hidden>
+      <aside class="side-panel" aria-label="Main navigation">
+        <div class="side-brand">
+          <img class="company-logo" src="company-logo-app.png" alt="Company logo">
+          <strong>CABSI</strong>
+        </div>
+        <nav class="side-nav">
+          <button class="nav-button is-active" type="button" data-view-button="home">Home</button>
+          <button class="nav-button" type="button" data-view-button="purchase-orders">Purchase Orders</button>
+          <button class="nav-button" type="button" data-view-button="analytics">Analytics</button>
+          <button class="nav-button" type="button" data-view-button="user-settings">User Settings</button>
+          <button class="nav-button" type="button" data-view-button="settings">Settings</button>
+        </nav>
+        <button class="nav-button logout-nav-button" id="logoutButton" type="button">Log Out</button>
+      </aside>
+
+      <div class="workspace">
+      <header class="topbar">
+        <div class="brand-lockup">
+          <img class="company-logo" src="company-logo-app.png" alt="Company logo">
+          <div>
+            <h1>CABSI NON SPECIALIZED WHOLESALE TRADING</h1>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button class="icon-button theme-toggle" id="themeToggle" type="button" aria-label="Switch to dark mode" title="Toggle light or dark mode">
+            <span class="theme-icon theme-icon-sun" aria-hidden="true">☀</span>
+            <span class="theme-icon theme-icon-moon" aria-hidden="true">☾</span>
+          </button>
+          <button class="primary-button" id="addButton" type="button">Add Item</button>
+        </div>
+      </header>
+
+      <main class="workspace-main">
+        <section class="app-view is-active" data-view="home">
+          <section class="summary-grid" aria-label="Financial summary">
+          <article class="metric">
+            <span>Total Gross</span>
+            <strong id="grossMetric">PHP 0</strong>
+          </article>
+          <article class="metric">
+            <span>Net Profit</span>
+            <strong id="netMetric">PHP 0</strong>
+          </article>
+          <article class="metric urgent">
+            <span>Receivables</span>
+            <strong id="receivableMetric">PHP 0</strong>
+          </article>
+          <article class="metric">
+            <span>Open Orders</span>
+            <strong id="openMetric">0</strong>
+          </article>
+          <article class="metric live-rate">
+            <span>CNY to PHP</span>
+            <strong id="exchangeMetric">Loading</strong>
+            <small id="exchangeMeta">Live exchange rate</small>
+          </article>
+          </section>
+
+          <section class="home-grid" aria-label="Home overview">
+            <article class="dashboard-panel">
+              <div class="panel-heading compact">
+                <h2>Today</h2>
+                <p id="currentUserName">plouis34</p>
+              </div>
+              <div class="quick-stats">
+                <div><span>Receivables</span><strong id="homeReceivable">PHP 0</strong></div>
+                <div><span>Open Orders</span><strong id="homeOpenOrders">0</strong></div>
+              </div>
+              <button class="primary-button" type="button" data-view-jump="purchase-orders">Open Purchase Orders</button>
+            </article>
+            <article class="dashboard-panel">
+              <div class="panel-heading compact">
+                <h2>Recent Purchase Orders</h2>
+                <p>Latest activity</p>
+              </div>
+              <div class="recent-list" id="homeRecentList"></div>
+            </article>
+          </section>
+        </section>
+
+        <section class="app-view" data-view="purchase-orders">
+        <section class="toolbar" aria-label="Filters">
+          <label class="search-field">
+            <span>Search</span>
+            <input id="searchInput" type="search" placeholder="Search item, customer, sheet">
+          </label>
+          <label>
+            <span>Customer</span>
+            <select id="categoryFilter"></select>
+          </label>
+          <label>
+            <span>Status</span>
+            <select id="statusFilter">
+              <option value="all">All</option>
+              <option value="paid">Paid</option>
+              <option value="open">Open receivables</option>
+              <option value="unmarked">Review</option>
+            </select>
+          </label>
+        </section>
+
+        <section class="content-grid">
+          <aside class="detail-panel" id="detailPanel" aria-live="polite">
+            <div class="empty-state">
+              <h2>Select an item</h2>
+              <p>Choose any record to see landed cost, shipping, payments, margin, and notes.</p>
+            </div>
+          </aside>
+
+          <div class="records-panel">
+            <div class="panel-heading">
+              <h2>Purchase Orders</h2>
+              <p id="resultCount">0 records</p>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Item</th>
+                    <th>Customer</th>
+                    <th>Qty</th>
+                    <th>Cost ¥</th>
+                    <th>Landed Cost PHP</th>
+                    <th>CBM</th>
+                    <th>Selling Price</th>
+                    <th>Ship Rate ¥</th>
+                    <th>X-Rate</th>
+                    <th>Gross</th>
+                    <th>Receivables</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="recordsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+        </section>
+
+        <section class="app-view" data-view="analytics">
+          <div class="panel-heading page-heading">
+            <h2>Analytics</h2>
+            <p>Sales, receivables, and customer totals</p>
+          </div>
+          <div class="analytics-panel" id="analyticsPanel"></div>
+        </section>
+
+        <section class="app-view" data-view="user-settings">
+          <div class="settings-grid">
+            <article class="dashboard-panel">
+              <div class="panel-heading compact">
+                <h2>User Settings</h2>
+                <p id="userSettingsName">plouis34</p>
+              </div>
+              <div class="settings-row">
+                <span>Username</span>
+                <strong>plouis34</strong>
+              </div>
+              <div class="settings-row">
+                <span>Access</span>
+                <strong>Local app user</strong>
+              </div>
+              <button id="userSettingsLogoutButton" type="button">Log Out</button>
+            </article>
+          </div>
+        </section>
+
+        <section class="app-view" data-view="settings">
+          <div class="settings-grid">
+            <article class="dashboard-panel">
+              <div class="panel-heading compact">
+                <h2>Settings</h2>
+                <p id="settingsThemeLabel">Light mode</p>
+              </div>
+              <div class="settings-row">
+                <span>Theme</span>
+                <button class="icon-button theme-toggle" id="settingsThemeToggle" type="button" aria-label="Toggle light or dark mode" title="Toggle light or dark mode">
+                  <span class="theme-icon theme-icon-sun" aria-hidden="true">â˜€</span>
+                  <span class="theme-icon theme-icon-moon" aria-hidden="true">â˜¾</span>
+                </button>
+              </div>
+              <div class="settings-row">
+                <span>Live CNY/PHP</span>
+                <strong id="settingsExchangeRate">Loading</strong>
+              </div>
+            </article>
+          </div>
+        </section>
+      </main>
+      </div>
+    </div>
+
+    <dialog id="itemDialog">
+      <form method="dialog" id="itemForm">
+        <div class="dialog-heading">
+          <div>
+            <h2 id="itemDialogTitle">Add sourcing item</h2>
+            <p class="dialog-rate" id="dialogExchangeRate">Live CNY/PHP reference loading</p>
+          </div>
+          <button class="icon-button" id="closeDialogButton" type="button" aria-label="Close" title="Close">X</button>
+        </div>
+        <div class="form-grid">
+          <label><span>Customer</span><input name="category" required></label>
+          <label><span>Date</span><input name="date" type="date"></label>
+          <label><span>Item</span><input name="description" list="descriptionHistory" autocomplete="off" required></label>
+          <datalist id="descriptionHistory"></datalist>
+          <label><span>Quantity</span><input name="qty" type="number" min="0" step="1"></label>
+          <label><span>Cost ¥</span><input name="cost" type="number" min="0" step="0.0001"></label>
+          <label><span>CBM</span><input name="cbm" type="number" min="0" step="0.0001"></label>
+          <label><span>Shipping Rate ¥</span><input name="shippingRate" type="number" min="0" step="0.01"></label>
+          <label><span>Manual X-Rate</span><input name="exchangeRate" type="number" min="0" step="0.0001"></label>
+          <label><span>Selling</span><input name="selling" type="number" min="0" step="0.0001"></label>
+          <label><span>Payment</span><input name="payment" type="number" min="0" step="0.01"></label>
+          <p class="form-hint wide" id="repeatPurchaseHint">Choose a previous item to reuse repeat-purchase details.</p>
+          <label class="wide"><span>Note</span><input name="note"></label>
+        </div>
+        <div class="dialog-actions">
+          <button id="cancelDialogButton" type="button">Cancel</button>
+          <button class="primary-button" id="saveItemButton" type="submit" value="default">Save Item</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="paymentDialog" class="payment-dialog">
+      <form method="dialog" id="paymentForm">
+        <div class="dialog-heading">
+          <div>
+            <h2>Update payment</h2>
+            <p class="dialog-rate" id="paymentOrderLabel">Selected purchase order</p>
+          </div>
+          <button class="icon-button" id="closePaymentDialogButton" type="button" aria-label="Close" title="Close">X</button>
+        </div>
+        <div class="form-grid">
+          <label><span>Add Payment</span><input name="addPayment" type="text" inputmode="decimal"></label>
+          <label><span>Payment Date</span><input name="paymentDate" type="date"></label>
+          <label><span>Total Payment</span><input name="payment" type="text" disabled></label>
+          <label><span>Gross</span><input name="gross" type="text" disabled></label>
+          <label><span>Receivables After Payment</span><input name="receivables" type="text" disabled></label>
+        </div>
+        <div class="dialog-actions">
+          <button id="cancelPaymentDialogButton" type="button">Cancel</button>
+          <button class="primary-button" type="submit" value="default">Update Payment</button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>
