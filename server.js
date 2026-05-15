@@ -10,8 +10,8 @@ const port = Number(process.env.PORT || 4177);
 const host = process.env.HOST || "0.0.0.0";
 const dataRoot = process.env.DATA_DIR || root;
 const dataFile = path.join(dataRoot, "user-records.json");
-const authUsername = process.env.APP_USERNAME || "plouis34";
-const authPassword = process.env.APP_PASSWORD || "canon1000d";
+const authUsername = process.env.APP_USERNAME || (process.env.NODE_ENV === "production" ? "" : "plouis34");
+const authPassword = process.env.APP_PASSWORD || (process.env.NODE_ENV === "production" ? "" : "canon1000d");
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex");
 const sessionCookieName = "cabsi_session";
 const cookieMaxAgeSeconds = 60 * 60 * 24 * 7;
@@ -83,6 +83,11 @@ function handleLoginApi(request, response) {
   });
   request.on("end", () => {
     try {
+      if (!authUsername || !authPassword) {
+        writeJson(response, 503, { error: "Login is not configured" });
+        return;
+      }
+
       const credentials = JSON.parse(body || "{}");
       if (credentials.username !== authUsername || credentials.password !== authPassword) {
         writeJson(response, 401, { error: "Invalid login" });

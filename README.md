@@ -13,4 +13,4 @@ npm start
 
 ## Deploy
 
-The app is prepared for Render Blueprints. Click the button above, review the `cabsi-app` web service and `cabsi-db` Postgres database, then set `APP_USERNAME` and `APP_PASSWORD` when prompted.
+The app is prepared for Render Blueprints. Click the button above, review the `cabsi-app` web service and `cabsi-db` Postgres database, then set `APP_USERNAME` and `APP_PASSWORD` in the Render service environment.
