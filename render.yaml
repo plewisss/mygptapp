@@ -20,6 +20,8 @@ services:
         sync: false
       - key: APP_PASSWORD
         sync: false
+      - key: APP_ADDITIONAL_USERS
+        sync: false
       - key: SESSION_SECRET
         generateValue: true
       - key: DATABASE_URL

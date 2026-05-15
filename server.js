@@ -10,8 +10,9 @@ const port = Number(process.env.PORT || 4177);
 const host = process.env.HOST || "0.0.0.0";
 const dataRoot = process.env.DATA_DIR || root;
 const dataFile = path.join(dataRoot, "user-records.json");
-const authUsername = process.env.APP_USERNAME || (process.env.NODE_ENV === "production" ? "" : "plouis34");
-const authPassword = process.env.APP_PASSWORD || (process.env.NODE_ENV === "production" ? "" : "canon1000d");
+const primaryAuthUsername = process.env.APP_USERNAME || (process.env.NODE_ENV === "production" ? "" : "plouis34");
+const primaryAuthPassword = process.env.APP_PASSWORD || (process.env.NODE_ENV === "production" ? "" : "canon1000d");
+const authUsers = buildAuthUsers();
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex");
 const sessionCookieName = "cabsi_session";
 const cookieMaxAgeSeconds = 60 * 60 * 24 * 7;
@@ -83,13 +84,13 @@ function handleLoginApi(request, response) {
   });
   request.on("end", () => {
     try {
-      if (!authUsername || !authPassword) {
+      if (!authUsers.size) {
         writeJson(response, 503, { error: "Login is not configured" });
         return;
       }
 
       const credentials = JSON.parse(body || "{}");
-      if (credentials.username !== authUsername || credentials.password !== authPassword) {
+      if (!isValidLogin(credentials.username, credentials.password)) {
         writeJson(response, 401, { error: "Invalid login" });
         return;
       }
@@ -114,9 +115,56 @@ function isAuthenticated(request) {
   const expectedSignature = signSession(username, expiresAt);
   const signatureBuffer = Buffer.from(signature);
   const expectedSignatureBuffer = Buffer.from(expectedSignature);
-  return username === authUsername
+  return authUsers.has(username)
     && signatureBuffer.length === expectedSignatureBuffer.length
     && crypto.timingSafeEqual(signatureBuffer, expectedSignatureBuffer);
+}
+
+function buildAuthUsers() {
+  const users = new Map();
+  addAuthUser(users, primaryAuthUsername, primaryAuthPassword);
+  parseAdditionalAuthUsers(process.env.APP_ADDITIONAL_USERS).forEach(([username, password]) => {
+    addAuthUser(users, username, password);
+  });
+  return users;
+}
+
+function addAuthUser(users, username, password) {
+  if (typeof username === "string" && username && typeof password === "string" && password) {
+    users.set(username, password);
+  }
+}
+
+function parseAdditionalAuthUsers(rawUsers) {
+  if (!rawUsers) return [];
+  try {
+    const parsed = JSON.parse(rawUsers);
+    if (Array.isArray(parsed)) {
+      return parsed.map((user) => [user?.username, user?.password]);
+    }
+    if (parsed && typeof parsed === "object") {
+      return Object.entries(parsed);
+    }
+  } catch {
+    // Fall back to a simple username=password list.
+  }
+
+  return rawUsers
+    .split(/[\n,;]/)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const separator = entry.includes("=") ? "=" : ":";
+      const separatorIndex = entry.indexOf(separator);
+      if (separatorIndex < 1) return [];
+      return [entry.slice(0, separatorIndex), entry.slice(separatorIndex + 1)];
+    });
+}
+
+function isValidLogin(username, password) {
+  return typeof username === "string"
+    && typeof password === "string"
+    && authUsers.get(username) === password;
 }
 
 function parseCookies(cookieHeader) {
