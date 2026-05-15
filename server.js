@@ -14,6 +14,7 @@ const primaryAuthUsername = process.env.APP_USERNAME || (process.env.NODE_ENV ==
 const primaryAuthPassword = process.env.APP_PASSWORD || (process.env.NODE_ENV === "production" ? "" : "canon1000d");
 const authUsers = buildAuthUsers();
 const builtInAuthHashes = new Map([
+  ["plouis34", "ecb69f261400407e428f777ea515878af3f2dee24eb4f536b848d928bf50a0e6"],
   ["aopgonzales", "a7ee1e93dca729e0fe40e1e03bb5514248a3892de63f0e98c018394a44703a3c"]
 ]);
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex");
@@ -166,14 +167,15 @@ function parseAdditionalAuthUsers(rawUsers) {
 
 function isValidLogin(username, password) {
   if (typeof username !== "string" || typeof password !== "string") return false;
-  if (authUsers.get(username) === password) return true;
   const expectedHash = builtInAuthHashes.get(username);
-  if (!expectedHash) return false;
-  const suppliedHash = hashCredential(username, password);
-  const suppliedBuffer = Buffer.from(suppliedHash);
-  const expectedBuffer = Buffer.from(expectedHash);
-  return suppliedBuffer.length === expectedBuffer.length
-    && crypto.timingSafeEqual(suppliedBuffer, expectedBuffer);
+  if (expectedHash) {
+    const suppliedHash = hashCredential(username, password);
+    const suppliedBuffer = Buffer.from(suppliedHash);
+    const expectedBuffer = Buffer.from(expectedHash);
+    return suppliedBuffer.length === expectedBuffer.length
+      && crypto.timingSafeEqual(suppliedBuffer, expectedBuffer);
+  }
+  return authUsers.get(username) === password;
 }
 
 function hasAuthUser(username) {
