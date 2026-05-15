@@ -46,13 +46,20 @@ const elements = {
   navButtons: document.querySelectorAll("[data-view-button]"),
   viewJumpButtons: document.querySelectorAll("[data-view-jump]"),
   views: document.querySelectorAll("[data-view]"),
+  mobileViewTitle: document.querySelector("#mobileViewTitle"),
+  mobileMenuButton: document.querySelector("#mobileMenuButton"),
+  mobileCategoryMenu: document.querySelector("#mobileCategoryMenu"),
+  mobileMenuLogoutButton: document.querySelector("#mobileMenuLogoutButton"),
   currentUserName: document.querySelector("#currentUserName"),
   homeReceivable: document.querySelector("#homeReceivable"),
   homeOpenOrders: document.querySelector("#homeOpenOrders"),
   homeRecentList: document.querySelector("#homeRecentList"),
+  financePanel: document.querySelector("#financePanel"),
+  financeUpdatedAt: document.querySelector("#financeUpdatedAt"),
   analyticsPanel: document.querySelector("#analyticsPanel"),
   userSettingsName: document.querySelector("#userSettingsName"),
   userSettingsLogoutButton: document.querySelector("#userSettingsLogoutButton"),
+  settingsLogoutButton: document.querySelector("#settingsLogoutButton"),
   settingsThemeToggle: document.querySelector("#settingsThemeToggle"),
   settingsThemeLabel: document.querySelector("#settingsThemeLabel"),
   settingsExchangeRate: document.querySelector("#settingsExchangeRate"),
@@ -62,6 +69,25 @@ const elements = {
   openMetric: document.querySelector("#openMetric"),
   exchangeMetric: document.querySelector("#exchangeMetric"),
   exchangeMeta: document.querySelector("#exchangeMeta"),
+  bottomStats: document.querySelector("#bottomStats"),
+  bottomExchangeMetric: document.querySelector("#bottomExchangeMetric"),
+  bottomExchangeDelta: document.querySelector("#bottomExchangeDelta"),
+  bottomGrossMetric: document.querySelector("#bottomGrossMetric"),
+  bottomNetMetric: document.querySelector("#bottomNetMetric"),
+  bottomNetRatio: document.querySelector("#bottomNetRatio"),
+  bottomReceivableMetric: document.querySelector("#bottomReceivableMetric"),
+  bottomReceivableRatio: document.querySelector("#bottomReceivableRatio"),
+  bottomPaidMetric: document.querySelector("#bottomPaidMetric"),
+  bottomPaidRatio: document.querySelector("#bottomPaidRatio"),
+  grossNetTrend: document.querySelector("#grossNetTrend"),
+  trendSummary: document.querySelector("#trendSummary"),
+  receivablesPanel: document.querySelector("#receivablesPanel"),
+  paymentsPanel: document.querySelector("#paymentsPanel"),
+  customersPanel: document.querySelector("#customersPanel"),
+  productsPanel: document.querySelector("#productsPanel"),
+  shipmentsPanel: document.querySelector("#shipmentsPanel"),
+  reportsPanel: document.querySelector("#reportsPanel"),
+  exchangeRatesPanel: document.querySelector("#exchangeRatesPanel"),
   dialogExchangeRate: document.querySelector("#dialogExchangeRate"),
   searchInput: document.querySelector("#searchInput"),
   categoryFilter: document.querySelector("#categoryFilter"),
@@ -72,6 +98,7 @@ const elements = {
   themeToggle: document.querySelector("#themeToggle"),
   logoutButton: document.querySelector("#logoutButton"),
   addButton: document.querySelector("#addButton"),
+  mobileAddButton: document.querySelector("#mobileAddButton"),
   itemDialog: document.querySelector("#itemDialog"),
   itemDialogTitle: document.querySelector("#itemDialogTitle"),
   itemForm: document.querySelector("#itemForm"),
@@ -150,7 +177,7 @@ async function handleLogout() {
 
 async function startApp() {
   showApp();
-  setView("home");
+  setView("finance");
   populateFilters();
   render();
   loadExchangeRate();
@@ -172,7 +199,7 @@ function applyTheme(theme) {
   document.documentElement.dataset.theme = normalizedTheme;
   localStorage.setItem(THEME_KEY, normalizedTheme);
   document.cookie = `${THEME_COOKIE}=${normalizedTheme}; Path=/; Max-Age=31536000; SameSite=Lax`;
-  elements.themeToggle.setAttribute("aria-label", `Switch to ${normalizedTheme === "dark" ? "light" : "dark"} mode`);
+  elements.themeToggle?.setAttribute("aria-label", `Switch to ${normalizedTheme === "dark" ? "light" : "dark"} mode`);
   elements.settingsThemeLabel.textContent = `${normalizedTheme === "dark" ? "Dark" : "Light"} mode`;
   elements.settingsThemeToggle.setAttribute("aria-label", `Switch to ${normalizedTheme === "dark" ? "light" : "dark"} mode`);
 }
@@ -195,10 +222,41 @@ function setView(viewName) {
   elements.navButtons.forEach((button) => {
     button.classList.toggle("is-active", button.dataset.viewButton === viewName);
   });
+  elements.mobileViewTitle.textContent = viewLabel(viewName);
+  closeMobileMenu();
   if (viewName === "purchase-orders") {
     render();
   }
   elements.addButton.hidden = viewName !== "purchase-orders";
+  elements.mobileAddButton.hidden = viewName !== "purchase-orders";
+  elements.bottomStats.hidden = viewName !== "purchase-orders";
+}
+
+function toggleMobileMenu() {
+  const willOpen = elements.mobileCategoryMenu.hidden;
+  elements.mobileCategoryMenu.hidden = !willOpen;
+  elements.mobileMenuButton.setAttribute("aria-expanded", String(willOpen));
+}
+
+function closeMobileMenu() {
+  if (!elements.mobileCategoryMenu) return;
+  elements.mobileCategoryMenu.hidden = true;
+  elements.mobileMenuButton?.setAttribute("aria-expanded", "false");
+}
+
+function viewLabel(viewName) {
+  return ({
+    finance: "Finance",
+    "purchase-orders": "Orders",
+    receivables: "Receivables",
+    customers: "Customers",
+    products: "Products",
+    shipments: "Shipments",
+    payments: "Payments",
+    reports: "Reports",
+    settings: "More",
+    home: "Dashboard"
+  })[viewName] || "CABSI";
 }
 
 function readUserRecords() {
@@ -300,6 +358,14 @@ function formatMoney(value) {
   return Number.isFinite(Number(value)) ? money.format(Number(value)) : "-";
 }
 
+function formatCompactMoney(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "-";
+  if (Math.abs(number) >= 1_000_000) return `₱${decimal.format(number / 1_000_000)}M`;
+  if (Math.abs(number) >= 1_000) return `₱${decimal.format(number / 1_000)}K`;
+  return money.format(number);
+}
+
 function formatUnitMoney(value) {
   return Number.isFinite(Number(value)) ? unitMoney.format(Number(value)) : "-";
 }
@@ -360,10 +426,13 @@ function render() {
   const everyRecord = allRecords();
   renderMetrics(records);
   renderRows(records);
+  renderGrossNetTrend(records);
   const selectedRecord = records.find((record) => record.id === selectedId) || records[0];
   renderDetail(selectedRecord);
   renderHome(everyRecord);
+  renderFinance(everyRecord);
   renderAnalytics(everyRecord);
+  renderSideViews(everyRecord);
 }
 
 function renderMetrics(records) {
@@ -371,14 +440,214 @@ function renderMetrics(records) {
     sum.gross += Number(record.gross) || 0;
     sum.net += Number(record.net) || 0;
     sum.receivables += Number(record.receivables) || 0;
+    sum.paid += Number(record.payment) || 0;
     sum.open += statusFor(record) === "open" ? 1 : 0;
     return sum;
-  }, { gross: 0, net: 0, receivables: 0, open: 0 });
+  }, { gross: 0, net: 0, receivables: 0, paid: 0, open: 0 });
 
   elements.grossMetric.textContent = formatMoney(totals.gross);
   elements.netMetric.textContent = formatMoney(totals.net);
   elements.receivableMetric.textContent = formatMoney(totals.receivables);
   elements.openMetric.textContent = String(totals.open);
+  elements.bottomGrossMetric.textContent = formatMoney(totals.gross);
+  elements.bottomNetMetric.textContent = formatMoney(totals.net);
+  elements.bottomReceivableMetric.textContent = formatMoney(totals.receivables);
+  elements.bottomPaidMetric.textContent = formatMoney(totals.paid);
+  elements.bottomNetRatio.textContent = `${formatPercent(ratioOf(totals.net, totals.gross))} of gross`;
+  elements.bottomReceivableRatio.textContent = `${formatPercent(ratioOf(totals.receivables, totals.gross))} of gross`;
+  elements.bottomPaidRatio.textContent = `${formatPercent(ratioOf(totals.paid, totals.gross))} of gross`;
+  elements.bottomExchangeMetric.textContent = liveExchangeRate ? decimal.format(liveExchangeRate) : workbookExchangeRate(records);
+  elements.bottomExchangeDelta.textContent = liveExchangeRate ? "Live reference" : "Workbook average";
+}
+
+function ratioOf(value, total) {
+  return Number(total) ? (Number(value) / Number(total)) * 100 : null;
+}
+
+function workbookExchangeRate(records) {
+  const rates = records.map((record) => Number(record.exchangeRate)).filter(Number.isFinite);
+  if (!rates.length) return "-";
+  return decimal.format(rates.reduce((sum, rate) => sum + rate, 0) / rates.length);
+}
+
+function renderGrossNetTrend(records) {
+  const points = monthlyTotals(records);
+  if (!points.length) {
+    elements.grossNetTrend.innerHTML = `<div class="empty-state compact"><h2>No dated records</h2><p>Add purchase order dates to build the trend.</p></div>`;
+    elements.trendSummary.textContent = "Monthly sales and profit movement";
+    return;
+  }
+
+  const maxValue = Math.max(...points.flatMap((point) => [point.gross, point.net]), 1);
+  elements.trendSummary.textContent = `${points.length} month${points.length === 1 ? "" : "s"} shown`;
+  elements.grossNetTrend.innerHTML = points.map((point) => {
+    const grossHeight = Math.max(4, (point.gross / maxValue) * 100);
+    const netHeight = Math.max(4, (point.net / maxValue) * 100);
+    return `
+      <div class="trend-point">
+        <div class="trend-bars">
+          <span class="trend-bar gross" style="height: ${grossHeight}%"></span>
+          <span class="trend-bar net" style="height: ${netHeight}%"></span>
+        </div>
+        <strong>${escapeHtml(point.label)}</strong>
+        <small>${formatMoney(point.net)} net</small>
+      </div>
+    `;
+  }).join("");
+}
+
+function monthlyTotals(records) {
+  return [...records.reduce((map, record) => {
+    const date = record.date ? new Date(record.date) : null;
+    if (!date || Number.isNaN(date.getTime())) return map;
+    const key = record.date.slice(0, 7);
+    const current = map.get(key) || { key, label: date.toLocaleDateString("en-PH", { month: "short", year: "2-digit" }), gross: 0, net: 0 };
+    current.gross += Number(record.gross) || 0;
+    current.net += Number(record.net) || 0;
+    map.set(key, current);
+    return map;
+  }, new Map()).values()].sort((a, b) => a.key.localeCompare(b.key)).slice(-8);
+}
+
+function renderSideViews(records) {
+  const totals = totalRecords(records);
+  const receivableRecords = records.filter((record) => Number(record.receivables) > 0)
+    .sort((a, b) => (Number(b.receivables) || 0) - (Number(a.receivables) || 0));
+  elements.receivablesPanel.innerHTML = insightList({
+    metrics: [
+      ["Open Receivables", formatMoney(totals.receivables)],
+      ["Open Orders", String(totals.open)],
+      ["Receivable Ratio", `${formatPercent(ratioOf(totals.receivables, totals.gross))} of gross`]
+    ],
+    title: "Largest Open Balances",
+    rows: receivableRecords.slice(0, 10).map((record) => [
+      record.category || "Unassigned",
+      record.description || "Untitled item",
+      formatMoney(record.receivables)
+    ])
+  });
+
+  elements.paymentsPanel.innerHTML = insightList({
+    metrics: [
+      ["Paid", formatMoney(totals.paid)],
+      ["Gross", formatMoney(totals.gross)],
+      ["Paid Ratio", `${formatPercent(ratioOf(totals.paid, totals.gross))} of gross`]
+    ],
+    title: "Recent Payment Status",
+    rows: records.slice().sort((a, b) => (Number(b.payment) || 0) - (Number(a.payment) || 0)).slice(0, 10).map((record) => [
+      record.category || "Unassigned",
+      record.description || "Untitled item",
+      formatMoney(record.payment)
+    ])
+  });
+
+  elements.customersPanel.innerHTML = groupedInsight(records, "category", "Customer Exposure", "customer");
+  elements.productsPanel.innerHTML = groupedInsight(records, "description", "Product Sales", "product");
+  elements.shipmentsPanel.innerHTML = insightList({
+    metrics: [
+      ["Total CBM", formatNumber(totals.cbm)],
+      ["Shipping Fees", formatMoney(totals.shippingFee)],
+      ["Avg Ship Rate", workbookExchangeRate(records)]
+    ],
+    title: "Largest Shipments",
+    rows: records.slice().sort((a, b) => (Number(b.cbm) || 0) - (Number(a.cbm) || 0)).slice(0, 10).map((record) => [
+      record.description || "Untitled item",
+      record.category || "Unassigned",
+      `${formatNumber(record.cbm)} CBM`
+    ])
+  });
+  elements.reportsPanel.innerHTML = insightList({
+    metrics: [
+      ["Total Gross", formatMoney(totals.gross)],
+      ["Net Profit", formatMoney(totals.net)],
+      ["Receivables", formatMoney(totals.receivables)],
+      ["Paid", formatMoney(totals.paid)]
+    ],
+    title: "Gross vs Net by Month",
+    rows: monthlyTotals(records).map((point) => [
+      point.label,
+      formatMoney(point.gross),
+      `${formatMoney(point.net)} net`
+    ])
+  });
+  elements.exchangeRatesPanel.innerHTML = insightList({
+    metrics: [
+      ["Live CNY/PHP", liveExchangeRate ? decimal.format(liveExchangeRate) : "-"],
+      ["Workbook Avg", workbookExchangeRate(records)],
+      ["Records", String(records.length)]
+    ],
+    title: "Workbook Exchange Rates",
+    rows: records.slice().sort((a, b) => (Number(b.exchangeRate) || 0) - (Number(a.exchangeRate) || 0)).slice(0, 10).map((record) => [
+      record.description || "Untitled item",
+      record.category || "Unassigned",
+      decimal.format(Number(record.exchangeRate) || 0)
+    ])
+  });
+}
+
+function totalRecords(records) {
+  return records.reduce((sum, record) => {
+    sum.gross += Number(record.gross) || 0;
+    sum.net += Number(record.net) || 0;
+    sum.receivables += Number(record.receivables) || 0;
+    sum.paid += Number(record.payment) || 0;
+    sum.cbm += Number(record.cbm) || 0;
+    sum.shippingFee += Number(record.shippingFee) || 0;
+    sum.open += statusFor(record) === "open" ? 1 : 0;
+    return sum;
+  }, { gross: 0, net: 0, receivables: 0, paid: 0, cbm: 0, shippingFee: 0, open: 0 });
+}
+
+function groupedInsight(records, field, title, noun) {
+  const groups = [...records.reduce((map, record) => {
+    const key = record[field] || `Unassigned ${noun}`;
+    const current = map.get(key) || { key, gross: 0, receivables: 0, count: 0 };
+    current.gross += Number(record.gross) || 0;
+    current.receivables += Number(record.receivables) || 0;
+    current.count += 1;
+    map.set(key, current);
+    return map;
+  }, new Map()).values()].sort((a, b) => b.gross - a.gross);
+  const totals = totalRecords(records);
+
+  return insightList({
+    metrics: [
+      [`Total ${noun}s`, String(groups.length)],
+      ["Total Gross", formatMoney(totals.gross)],
+      ["Receivables", formatMoney(totals.receivables)]
+    ],
+    title,
+    rows: groups.slice(0, 10).map((group) => [
+      group.key,
+      `${group.count} order${group.count === 1 ? "" : "s"}`,
+      formatMoney(group.gross)
+    ])
+  });
+}
+
+function insightList({ metrics, title, rows }) {
+  return `
+    <div class="insight-metrics">
+      ${metrics.map(([label, value]) => `<article class="metric"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`).join("")}
+    </div>
+    <article class="dashboard-panel">
+      <div class="panel-heading compact">
+        <h2>${escapeHtml(title)}</h2>
+        <p>${rows.length} rows</p>
+      </div>
+      <div class="insight-list">
+        ${rows.map(([primary, secondary, value]) => `
+          <div class="insight-row">
+            <div>
+              <strong>${escapeHtml(primary)}</strong>
+              <span>${escapeHtml(secondary)}</span>
+            </div>
+            <strong>${escapeHtml(value)}</strong>
+          </div>
+        `).join("")}
+      </div>
+    </article>
+  `;
 }
 
 function renderHome(records) {
@@ -408,6 +677,177 @@ function renderHome(records) {
       setView("purchase-orders");
     });
   });
+}
+
+function renderFinance(records) {
+  const totals = totalRecords(records);
+  const unpaid = Math.max(0, totals.receivables);
+  const paidRatio = ratioOf(totals.paid, totals.paid + unpaid) || 0;
+  const unpaidRatio = 100 - paidRatio;
+  const aging = receivableAging(records);
+  const customers = groupedRows(records, "category")
+    .sort((a, b) => b.receivables - a.receivables)
+    .slice(0, 10);
+  const maxCustomerReceivable = Math.max(...customers.map((customer) => customer.receivables), 1);
+  const paidUnpaid = monthlyPaidUnpaid(records);
+  const trend = monthlyTotals(records);
+  const maxMonthlyCash = Math.max(...paidUnpaid.flatMap((point) => [point.paid, point.unpaid]), 1);
+  const maxNet = Math.max(...trend.map((point) => point.net), 1);
+  const recent = records.slice()
+    .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))
+    .slice(0, 6);
+
+  elements.financeUpdatedAt.textContent = `Updated ${new Date().toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}`;
+  elements.financePanel.innerHTML = `
+    <section class="finance-kpis">
+      ${financeMetric("Total Gross", formatMoney(totals.gross), `${formatPercent(ratioOf(totals.gross, totals.gross))} tracked`)}
+      ${financeMetric("Net Profit", formatMoney(totals.net), `${formatPercent(ratioOf(totals.net, totals.gross))} of gross`)}
+      ${financeMetric("Receivables", formatMoney(totals.receivables), `${formatPercent(ratioOf(totals.receivables, totals.gross))} of gross`, "danger")}
+      ${financeMetric("Open Orders", String(totals.open), "Need collection review")}
+      ${financeMetric("CNY/PHP", liveExchangeRate ? decimal.format(liveExchangeRate) : workbookExchangeRate(records), liveExchangeRate ? "Live reference" : "Workbook average")}
+    </section>
+    <section class="finance-grid">
+      <article class="finance-card receivables-overview">
+        <div class="panel-heading compact">
+          <h2>Receivables Overview</h2>
+          <p>${formatMoney(unpaid)} open</p>
+        </div>
+        <div class="receivable-layout">
+          <div class="receivable-total">
+            <span>Total Receivables</span>
+            <strong>${formatMoney(unpaid)}</strong>
+            <p><i class="dot paid-dot"></i>Paid <b>${formatMoney(totals.paid)}</b> <small>${formatPercent(paidRatio)}</small></p>
+            <p><i class="dot unpaid-dot"></i>Unpaid <b>${formatMoney(unpaid)}</b> <small>${formatPercent(unpaidRatio)}</small></p>
+          </div>
+          <div class="donut" style="--paid:${paidRatio}; --unpaid:${unpaidRatio}">
+            <strong>${formatCompactMoney(unpaid)}</strong>
+            <span>Total</span>
+          </div>
+          <div class="finance-breakdown">
+            <h3>Aging</h3>
+            <div><span>0-30 Days</span><strong>${formatMoney(aging.current)}</strong><small>${formatPercent(ratioOf(aging.current, unpaid))}</small></div>
+            <div><span>31-60 Days</span><strong>${formatMoney(aging.mid)}</strong><small>${formatPercent(ratioOf(aging.mid, unpaid))}</small></div>
+            <div class="overdue"><span>Overdue</span><strong>${formatMoney(aging.overdue)}</strong><small>${formatPercent(ratioOf(aging.overdue, unpaid))}</small></div>
+          </div>
+        </div>
+      </article>
+      <article class="finance-card customer-balances">
+        <div class="panel-heading compact">
+          <h2>Customer Balances</h2>
+          <p>${customers.length} customers</p>
+        </div>
+        <div class="balance-list">
+          ${customers.map((customer, index) => `
+            <div class="balance-row">
+              <span>${index + 1}</span>
+              <strong>${escapeHtml(customer.key)}</strong>
+              <div class="mini-track"><i style="width:${Math.max(4, (customer.receivables / maxCustomerReceivable) * 100)}%"></i></div>
+              <b>${formatMoney(customer.receivables)}</b>
+            </div>
+          `).join("")}
+          <div class="balance-total"><span>Total</span><strong>${formatMoney(customers.reduce((sum, customer) => sum + customer.receivables, 0))}</strong></div>
+        </div>
+      </article>
+      <article class="finance-card">
+        <div class="panel-heading compact">
+          <h2>Paid vs Unpaid</h2>
+          <p>By month</p>
+        </div>
+        <div class="finance-bars">
+          ${paidUnpaid.map((point) => `
+            <div class="finance-bar-point">
+              <div class="paired-bars">
+                <span class="paid-bar" style="height:${Math.max(4, (point.paid / maxMonthlyCash) * 100)}%"></span>
+                <span class="unpaid-bar" style="height:${Math.max(4, (point.unpaid / maxMonthlyCash) * 100)}%"></span>
+              </div>
+              <strong>${escapeHtml(point.label)}</strong>
+            </div>
+          `).join("")}
+        </div>
+      </article>
+      <article class="finance-card">
+        <div class="panel-heading compact">
+          <h2>Net Profit Trend</h2>
+          <p>Monthly</p>
+        </div>
+        <div class="net-trend">
+          ${trend.map((point) => `
+            <div class="net-point">
+              <span style="height:${Math.max(4, (point.net / maxNet) * 100)}%"></span>
+              <strong>${escapeHtml(point.label)}</strong>
+            </div>
+          `).join("")}
+        </div>
+      </article>
+      <article class="finance-card recent-finance-orders">
+        <div class="panel-heading compact">
+          <h2>Recent Purchase Orders</h2>
+          <p>${recent.length} latest</p>
+        </div>
+        <div class="finance-table">
+          <div class="finance-table-head"><span>Date</span><span>Customer</span><span>Item</span><span>Gross</span><span>Receivables</span><span>Status</span></div>
+          ${recent.map((record) => `
+            <div class="finance-table-row">
+              <span>${escapeHtml(record.date || "-")}</span>
+              <span>${escapeHtml(record.category || "Unassigned")}</span>
+              <strong>${escapeHtml(record.description || "Untitled item")}</strong>
+              <span>${formatMoney(record.gross)}</span>
+              <span>${formatMoney(record.receivables)}</span>
+              <span class="pill ${statusFor(record)}">${displayStatus(record)}</span>
+            </div>
+          `).join("")}
+        </div>
+      </article>
+    </section>
+  `;
+}
+
+function financeMetric(label, value, delta, tone = "") {
+  return `
+    <article class="finance-metric ${tone}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+      <small>${escapeHtml(delta)}</small>
+    </article>
+  `;
+}
+
+function groupedRows(records, field) {
+  return [...records.reduce((map, record) => {
+    const key = record[field] || "Unassigned";
+    const current = map.get(key) || { key, gross: 0, receivables: 0, paid: 0, count: 0 };
+    current.gross += Number(record.gross) || 0;
+    current.receivables += Number(record.receivables) || 0;
+    current.paid += Number(record.payment) || 0;
+    current.count += 1;
+    map.set(key, current);
+    return map;
+  }, new Map()).values()];
+}
+
+function monthlyPaidUnpaid(records) {
+  return monthlyTotals(records).map((point) => {
+    const monthRecords = records.filter((record) => record.date && record.date.slice(0, 7) === point.key);
+    return {
+      ...point,
+      paid: monthRecords.reduce((sum, record) => sum + (Number(record.payment) || 0), 0),
+      unpaid: monthRecords.reduce((sum, record) => sum + (Number(record.receivables) || 0), 0)
+    };
+  });
+}
+
+function receivableAging(records) {
+  const today = new Date();
+  return records.reduce((sum, record) => {
+    const receivable = Number(record.receivables) || 0;
+    if (receivable <= 0) return sum;
+    const date = record.date ? new Date(record.date) : null;
+    const age = date && !Number.isNaN(date.getTime()) ? Math.max(0, Math.floor((today - date) / 86_400_000)) : 61;
+    if (age <= 30) sum.current += receivable;
+    else if (age <= 60) sum.mid += receivable;
+    else sum.overdue += receivable;
+    return sum;
+  }, { current: 0, mid: 0, overdue: 0 });
 }
 
 function renderAnalytics(records) {
@@ -766,8 +1206,12 @@ function escapeHtml(value) {
 elements.loginForm.addEventListener("submit", handleLogin);
 elements.logoutButton.addEventListener("click", handleLogout);
 elements.userSettingsLogoutButton.addEventListener("click", handleLogout);
+elements.settingsLogoutButton.addEventListener("click", handleLogout);
+elements.mobileMenuLogoutButton.addEventListener("click", handleLogout);
 elements.addButton.addEventListener("click", () => openItemDialog());
-elements.themeToggle.addEventListener("click", () => {
+elements.mobileAddButton.addEventListener("click", () => openItemDialog());
+elements.mobileMenuButton?.addEventListener("click", toggleMobileMenu);
+elements.themeToggle?.addEventListener("click", () => {
   applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
 });
 elements.settingsThemeToggle.addEventListener("click", () => {

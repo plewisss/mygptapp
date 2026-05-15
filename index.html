@@ -30,14 +30,39 @@
           <strong>CABSI</strong>
         </div>
         <nav class="side-nav">
-          <button class="nav-button is-active" type="button" data-view-button="home">Home</button>
+          <button class="nav-button is-active" type="button" data-view-button="finance">Finance</button>
           <button class="nav-button" type="button" data-view-button="purchase-orders">Purchase Orders</button>
-          <button class="nav-button" type="button" data-view-button="analytics">Analytics</button>
-          <button class="nav-button" type="button" data-view-button="user-settings">User Settings</button>
+          <button class="nav-button" type="button" data-view-button="receivables">Receivables</button>
+          <button class="nav-button" type="button" data-view-button="customers">Customers</button>
+          <button class="nav-button" type="button" data-view-button="products">Products</button>
+          <button class="nav-button" type="button" data-view-button="shipments">Shipments</button>
+          <button class="nav-button" type="button" data-view-button="payments">Payments</button>
+          <button class="nav-button" type="button" data-view-button="reports">Reports</button>
           <button class="nav-button" type="button" data-view-button="settings">Settings</button>
         </nav>
         <button class="nav-button logout-nav-button" id="logoutButton" type="button">Log Out</button>
       </aside>
+
+      <header class="mobile-appbar" aria-label="Mobile navigation">
+        <button class="mobile-menu-button" id="mobileMenuButton" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileCategoryMenu">☰</button>
+        <div class="mobile-brand">
+          <img class="company-logo" src="company-logo-app.png" alt="Company logo">
+          <strong>CABSI</strong>
+        </div>
+        <strong class="mobile-view-title" id="mobileViewTitle">Finance</strong>
+        <nav class="mobile-category-menu" id="mobileCategoryMenu" aria-label="Mobile categories" hidden>
+          <button type="button" data-view-button="finance">Finance</button>
+          <button type="button" data-view-button="purchase-orders">Purchase Orders</button>
+          <button type="button" data-view-button="receivables">Receivables</button>
+          <button type="button" data-view-button="customers">Customers</button>
+          <button type="button" data-view-button="products">Products</button>
+          <button type="button" data-view-button="shipments">Shipments</button>
+          <button type="button" data-view-button="payments">Payments</button>
+          <button type="button" data-view-button="reports">Reports</button>
+          <button type="button" data-view-button="settings">Settings</button>
+          <button class="mobile-menu-logout" id="mobileMenuLogoutButton" type="button">Log Out</button>
+        </nav>
+      </header>
 
       <div class="workspace">
       <header class="topbar">
@@ -48,16 +73,12 @@
           </div>
         </div>
         <div class="top-actions">
-          <button class="icon-button theme-toggle" id="themeToggle" type="button" aria-label="Switch to dark mode" title="Toggle light or dark mode">
-            <span class="theme-icon theme-icon-sun" aria-hidden="true">☀</span>
-            <span class="theme-icon theme-icon-moon" aria-hidden="true">☾</span>
-          </button>
           <button class="primary-button" id="addButton" type="button">Add Item</button>
         </div>
       </header>
 
       <main class="workspace-main">
-        <section class="app-view is-active" data-view="home">
+        <section class="app-view" data-view="home">
           <section class="summary-grid" aria-label="Financial summary">
           <article class="metric">
             <span>Total Gross</span>
@@ -104,6 +125,14 @@
           </section>
         </section>
 
+        <section class="app-view is-active" data-view="finance">
+          <div class="panel-heading page-heading">
+            <h2>Finance Control Center</h2>
+            <p id="financeUpdatedAt">Financial overview</p>
+          </div>
+          <div class="finance-panel" id="financePanel"></div>
+        </section>
+
         <section class="app-view" data-view="purchase-orders">
         <section class="toolbar" aria-label="Filters">
           <label class="search-field">
@@ -123,6 +152,7 @@
               <option value="unmarked">Review</option>
             </select>
           </label>
+          <button class="primary-button mobile-add-button" id="mobileAddButton" type="button">Add Item</button>
         </section>
 
         <section class="content-grid">
@@ -135,8 +165,15 @@
 
           <div class="records-panel">
             <div class="panel-heading">
-              <h2>Purchase Orders</h2>
-              <p id="resultCount">0 records</p>
+              <div>
+                <h2>Purchase Orders</h2>
+                <p id="resultCount">0 records</p>
+              </div>
+              <div class="table-tools" aria-label="Table options">
+                <span class="table-tool">Compact rows</span>
+                <span class="table-tool">Sticky header</span>
+                <span class="table-tool">Live totals</span>
+              </div>
             </div>
             <div class="table-wrap">
               <table>
@@ -163,6 +200,97 @@
             </div>
           </div>
         </section>
+        <section class="bottom-stats" id="bottomStats" aria-label="Filtered financial statistics">
+          <div>
+            <span>CNY/PHP</span>
+            <strong id="bottomExchangeMetric">-</strong>
+            <small id="bottomExchangeDelta">Live reference</small>
+          </div>
+          <div>
+            <span>Total Gross</span>
+            <strong id="bottomGrossMetric">-</strong>
+          </div>
+          <div>
+            <span>Net Profit</span>
+            <strong id="bottomNetMetric">-</strong>
+            <small id="bottomNetRatio">-</small>
+          </div>
+          <div>
+            <span>Receivables</span>
+            <strong id="bottomReceivableMetric">-</strong>
+            <small id="bottomReceivableRatio">-</small>
+          </div>
+          <div>
+            <span>Paid</span>
+            <strong id="bottomPaidMetric">-</strong>
+            <small id="bottomPaidRatio">-</small>
+          </div>
+        </section>
+        <section class="trend-panel" aria-label="Gross vs net trend">
+          <div class="panel-heading compact">
+            <div>
+              <h2>Gross vs Net Trend</h2>
+              <p id="trendSummary">Monthly sales and profit movement</p>
+            </div>
+          </div>
+          <div class="trend-chart" id="grossNetTrend"></div>
+        </section>
+        </section>
+
+        <section class="app-view" data-view="receivables">
+          <div class="panel-heading page-heading">
+            <h2>Receivables</h2>
+            <p>Open balances by customer and item</p>
+          </div>
+          <div class="insight-panel" id="receivablesPanel"></div>
+        </section>
+
+        <section class="app-view" data-view="payments">
+          <div class="panel-heading page-heading">
+            <h2>Payments</h2>
+            <p>Paid totals and outstanding payment work</p>
+          </div>
+          <div class="insight-panel" id="paymentsPanel"></div>
+        </section>
+
+        <section class="app-view" data-view="customers">
+          <div class="panel-heading page-heading">
+            <h2>Customers</h2>
+            <p>Customer gross sales and receivable exposure</p>
+          </div>
+          <div class="insight-panel" id="customersPanel"></div>
+        </section>
+
+        <section class="app-view" data-view="products">
+          <div class="panel-heading page-heading">
+            <h2>Products</h2>
+            <p>Item-level volume, sales, and receivables</p>
+          </div>
+          <div class="insight-panel" id="productsPanel"></div>
+        </section>
+
+        <section class="app-view" data-view="shipments">
+          <div class="panel-heading page-heading">
+            <h2>Shipments</h2>
+            <p>CBM and shipping cost overview</p>
+          </div>
+          <div class="insight-panel" id="shipmentsPanel"></div>
+        </section>
+
+        <section class="app-view" data-view="reports">
+          <div class="panel-heading page-heading">
+            <h2>Reports</h2>
+            <p>Gross, net, receivables, and paid summary</p>
+          </div>
+          <div class="insight-panel" id="reportsPanel"></div>
+        </section>
+
+        <section class="app-view" data-view="exchange-rates">
+          <div class="panel-heading page-heading">
+            <h2>Exchange Rates</h2>
+            <p>CNY/PHP references used by purchase orders</p>
+          </div>
+          <div class="insight-panel" id="exchangeRatesPanel"></div>
         </section>
 
         <section class="app-view" data-view="analytics">
@@ -203,19 +331,39 @@
               <div class="settings-row">
                 <span>Theme</span>
                 <button class="icon-button theme-toggle" id="settingsThemeToggle" type="button" aria-label="Toggle light or dark mode" title="Toggle light or dark mode">
-                  <span class="theme-icon theme-icon-sun" aria-hidden="true">â˜€</span>
-                  <span class="theme-icon theme-icon-moon" aria-hidden="true">â˜¾</span>
+                  <span class="theme-icon theme-icon-sun" aria-hidden="true">L</span>
+                  <span class="theme-icon theme-icon-moon" aria-hidden="true">D</span>
                 </button>
               </div>
               <div class="settings-row">
                 <span>Live CNY/PHP</span>
                 <strong id="settingsExchangeRate">Loading</strong>
               </div>
+              <button class="settings-logout-button" id="settingsLogoutButton" type="button">Log Out</button>
             </article>
           </div>
         </section>
       </main>
       </div>
+
+      <nav class="mobile-bottom-nav" aria-label="Mobile primary navigation">
+        <button class="mobile-tab is-active" type="button" data-view-button="finance">
+          <span aria-hidden="true">◔</span>
+          <strong>Finance</strong>
+        </button>
+        <button class="mobile-tab" type="button" data-view-button="purchase-orders">
+          <span aria-hidden="true">▤</span>
+          <strong>Orders</strong>
+        </button>
+        <button class="mobile-tab" type="button" data-view-button="receivables">
+          <span aria-hidden="true">▣</span>
+          <strong>Receivables</strong>
+        </button>
+        <button class="mobile-tab" type="button" data-view-button="settings">
+          <span aria-hidden="true">•••</span>
+          <strong>More</strong>
+        </button>
+      </nav>
     </div>
 
     <dialog id="itemDialog">
